@@ -8,27 +8,10 @@ hub = PrimeHub()
 
 class Garra:
     def __init__(self):
-        self.motor = Motor(Port.F)
+        self.motor = Motor(Port.D,Direction.COUNTERCLOCKWISE)
 
-    def fechar(self,grau = 70):
-        self.motor.run_angle(600,grau,Stop.HOLD)
+    def pegaCaixa(self,grau):
+        self.motor.run_angle(700,grau,Stop.HOLD)
 
-    def abrir(self):
-        pass
-
-    def subir(self):
-        pass
-
-    def descer(self):
-        pass
-
-class Rede:
-    def __init__(self):
-        self.motor = Motor(X)
-        pass
-
-    def sobe(self):
-        pass
-
-    def desce(self):
-        pass
+    def deixaCaixa(self,grau):
+        self.motor.run_angle(700,grau)
