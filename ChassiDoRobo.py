@@ -11,38 +11,40 @@ class Chassi():
     def __init__(self, common=None):
         self.motor_dir = Motor(Port.D)
         self.motor_esq = Motor(Port.C, Direction.COUNTERCLOCKWISE)
-        self.sensor_linha = ColorSensor(Port.C)
+        self.sensor_linha = ColorSensor(Port.E)
         self.common = common
-
+        self.check = 0
         self.velMax = 900
         self.velMin = 150
         self.distDesacelera = 15
         self.angDesacelera = 50
 
-    def autopilot(self, vel, dist):
-        self.motor_esq.reset_angle(0)
-        self.motor_dir.reset_angle(0)
-        dist_atual = (self.motor_dir.angle() + self.motor_esq.angle()) / 2
-        while dist_atual < dist:
-            dist_atual = (self.motor_dir.angle() + self.motor_esq.angle()) / 2
-            self.motor_dir.run(vel)
-            self.motor_esq.run(vel)
-        self.motor_dir.brake()
-        self.motor_esq.brake()
+        # Constantes PID para correção angular
+        self.kp_ang = 2.5
+        self.ki_ang = 0
+        self.kd_ang = 1.2
+        self.last_error = 0
+
+    def proporcional_derivada(self, ang_alvo, ang_atual):
+        error = ang_alvo - ang_atual
+        derivada = (error - self.last_error) * self.kd_ang
+        proporcional = error * self.kp_ang
+        self.last_error = error
+        return proporcional + derivada
 
     def autopilot_ang(self, vel_inicial, dist_alvo, ang_alvo):
         vel = vel_inicial * (dist_alvo / abs(dist_alvo))
         self.motor_dir.reset_angle(0)
         self.motor_esq.reset_angle(0)
-        dist_atual = (self.motor_dir.angle() + self.motor_esq.angle()) / 2
-        print(dist_atual)
+        dist_atual = 0
         while abs(dist_atual) < abs(dist_alvo):
             correcao = self.proporcional_derivada(ang_alvo, hub.imu.heading())
-            dist_atual = abs(self.motor_dir.angle())
+            dist_atual = (self.motor_dir.angle() + self.motor_esq.angle()) / 2
             self.motor_dir.run(vel - correcao)
             self.motor_esq.run(vel + correcao)
         self.motor_dir.brake()
         self.motor_esq.brake()
+
 
     def curva(self, vel_inicial, ang_alvo):
         ang_inicial = hub.imu.heading()
@@ -86,13 +88,14 @@ class Chassi():
                 self.motor_dir.run(vel - self.common.pid * -1)
                 self.motor_esq.run(vel + self.common.pid * -1)
             self.common.posicao_cm_robo()
+        
 
 class Common:
     def __init__(self, chassi):
         self.chassi = chassi
-        self.kp = 7
+        self.kp =  5.3
         self.ki = 0
-        self.kd = 9
+        self.kd = 4.1
         self.referencia = 48
         self.reflexao = self.chassi.sensor_linha.hsv().v
         self.diam = 56
@@ -148,5 +151,7 @@ class Common:
 chassi = Chassi()
 common = Common(chassi)
 chassi.common = common  
-common.segue_linha(350, 150, "esquerda")
+
+chassi.autopilot_ang(300,10,-90)
+common.chassi.sensor_linha(600,80,"esquerda")
 
